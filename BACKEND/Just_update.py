@@ -11,7 +11,7 @@ async def update_prices(config):
         "regular_gas": (response["results"][0]["regular_gas"]["price"], response["results"][0]["regular_gas"]["last_updated"])
     }
 
-    with sqlite3.connect(config["db_name"]) as conn:
+    with sqlite3.connect('/home/victor/gasbuddy-buddy/BACKEND/' + config["db_name"]) as conn:
         cursor = conn.cursor()
         for gas_type, (price, last_updated) in prices.items():
             table_name = f"{gas_type}_prices"
@@ -31,7 +31,7 @@ async def main():
 
 def read_config():
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read('/home/victor/gasbuddy-buddy/BACKEND/config.ini')
     return {
         'latitude': float(config.get('Location', 'latitude')),
         'longitude': float(config.get('Location', 'longitude')),

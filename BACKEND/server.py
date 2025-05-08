@@ -15,7 +15,7 @@ def close_db(conn):
     if conn:
         conn.close()
 
-@app.route('/gas_prices')
+@app.route('/api/gas_prices')
 def get_gas_prices():
     conn = get_db()
     cursor = conn.cursor()

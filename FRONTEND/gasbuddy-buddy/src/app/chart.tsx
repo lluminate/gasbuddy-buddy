@@ -30,8 +30,9 @@ const chartConfig = {
 export function GasChart() {
   const [chartData, setChartData] = useState<any[] | undefined>(undefined);
 
+  // reverse the order of the data
   useEffect(() => {
-    fetch("http://127.0.0.1:5003/gas_prices")
+    fetch("http://192.168.0.102:5003/gas_prices")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -42,7 +43,7 @@ export function GasChart() {
         }
         return response.json();
       })
-      .then((data) => setChartData(data))
+      .then((data) => setChartData(data.reverse()))
       .catch((error) => console.error("Error fetching chart data:", error));
   }, []);
 
@@ -90,7 +91,7 @@ export function GasChart() {
             />
             <Area
               dataKey="price" // Replace "price" with the actual key for gas prices in your JSON response
-              type="natural"
+              type="linear"
               fill="var(--color-desktop)"
               fillOpacity={0.4}
               stroke="var(--color-desktop)"

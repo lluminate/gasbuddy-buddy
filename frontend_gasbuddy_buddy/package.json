@@ -24,5 +24,10 @@
     "eslint-config-next": "15.3.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "proxy": {
+    "/api": {
+      "target": "http://localhost:5003/api"
+    }
   }
 }

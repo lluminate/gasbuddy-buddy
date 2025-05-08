@@ -6,7 +6,7 @@ export default function Gas_chart() {
     const [chartData, setChartData] = useState<any[] | undefined>(undefined);
 
     useEffect(() => {
-        fetch("192.168.0.102:5003/api/gas_prices")
+        fetch("http://192.168.0.102:5003/api/gas_prices")
             .then((response) => {
                 if(!response.ok) {
                     throw new Error (`HTTP error! status: ${response.status}`);

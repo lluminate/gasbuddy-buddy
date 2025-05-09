@@ -173,5 +173,8 @@
   body {
     @apply bg-background text-foreground;
   }
+  Button, [role="button"] {
+    @apply cursor-pointer;
+  }
 }
 

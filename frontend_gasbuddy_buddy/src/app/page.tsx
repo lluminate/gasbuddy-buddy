@@ -18,6 +18,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table"
+import StationList from "@/components/station-list";
 
 type GeocoderControlProps = {
     setMarker: React.Dispatch<React.SetStateAction<[number, number] | null>>;
@@ -60,7 +61,6 @@ export default function Home() {
     const [marker, setMarker] = useState<[number, number] | null>(null);
     const [period, setPeriod] = useState("7");
     const [newStationName, setNewStationName] = useState("");
-    const [stations, setStations] = useState<any[]>([]);
 
     function handleAddStation() {
         if (marker && newStationName) {
@@ -83,56 +83,6 @@ export default function Home() {
             // Reset marker and station name after adding
             setNewStationName(" ");
         }
-    }
-
-    function getStations() {
-        fetch("http://192.168.0.102:5003/api/stations")
-            .then(response => response.json())
-            .then(data => {
-                setStations(data);
-                console.log("Fetched stations:", data);
-            })
-            .catch(error => console.error("Error fetching stations:", error));
-        {stations.map((station) => (
-                <TableRow
-                    key={station.id}
-                    className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
-                    <TableCell className="bg-muted/50 py-2 font-medium w-1/2">
-                        {station.name}
-                    </TableCell>
-                    <TableCell className="py-2">
-                        {station.id}
-                    </TableCell>
-                    <TableCell className="py-2">
-                        <Button onClick={() => console.log(`Locate ${station.name}`)}>Locate</Button>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                fetch("http://192.168.0.102:5003/api/stations/remove", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({id: station.id}),
-                                })
-                                    .then((response) => response.json())
-                                    .then(() => {
-                                        console.log(`Deleted station: ${station.name}`);
-                                        setStations((prev) =>
-                                            prev.filter((s) => s.id !== station.id)
-                                        );
-                                    })
-                                    .catch((error) =>
-                                        console.error("Error deleting station:", error)
-                                    );
-                            }}
-                        >Delete</Button>
-                    </TableCell>
-                </TableRow>
-        ))}
-
-
-
     }
 
     function GeocoderControl() {
@@ -176,7 +126,7 @@ export default function Home() {
                                     <div className={"flex-1 flex gap-3"}>
                                         <div className="flex flex-col gap-0.5">
                                             <div className="text-xl font-semibold">
-                                                GAS PRICES <span className="text-muted-foreground">:</span> HISTORICAL
+                                                GAS PRICES <span className="text-muted-foreground">:</span> REGULAR
                                             </div>
                                             <div className="text-[13px] text-muted-foreground/72 dark:text-muted-foreground/64 uppercase font-medium">
                                                 {getPeriodLabel(period)}{" "}
@@ -202,7 +152,7 @@ export default function Home() {
                     <div className={"flex-1 @container"}>
                         <div className={"flex flex-row gap-6"}>
                             <Card className="shadow-2xl rounded-3xl p-0 w-2/3">
-                                <CardContent className={"p-0"}>
+                                <CardContent className={"p-0 z-5"}>
                                     <MapContainer
                                         center={[49.281922853936955, -123.12045878399663]}
                                         zoom={10}
@@ -222,7 +172,7 @@ export default function Home() {
                             </Card>
                             <Card className="shadow-2xl rounded-3xl w-1/3 border-transparent dark:border-border/64">
                                 <CardContent>
-                                    <div className={"p-10"}>
+                                    <div>
                                         <div className="*:not-first:mt-2">
                                             <h1 className="text-xl font-semibold">Add a New Station</h1>
                                             {marker ? (
@@ -262,13 +212,8 @@ export default function Home() {
                                                 <Input className="flex-1" placeholder="Fuel Station" type="text" required value={newStationName} onChange={(e) => setNewStationName(e.target.value)}/>
                                                 <Button variant="outline" onClick={handleAddStation}>Add</Button>
                                             </div>
-                                            {/*TODO: add list of stations*/}
-                                            <div className="bg-background overflow-hidden rounded-md border">
-                                                <Table className={"text-center"}>
-                                                    <TableBody>
-
-                                                    </TableBody>
-                                                </Table>
+                                            <div className={"z-1000"}>
+                                                <StationList setMarker={setMarker}/>
                                             </div>
                                         </div>
                                     </div>

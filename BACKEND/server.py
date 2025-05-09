@@ -51,8 +51,20 @@ def get_gas_prices():
     price_list = [dict(row) for row in prices]
     return jsonify(price_list)
 
-@app.route("/api/gas_prices", methods=["POST"])
-def add_gas_price():
+@app.route("/api/stations")
+def get_stations():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM stations")
+    stations = cursor.fetchall()
+    close_db(conn)
+
+    # Convert the list of Row objects to a list of dictionaries for JSON serialization
+    station_list = [dict(row) for row in stations]
+    return jsonify(station_list)
+
+@app.route("/api/stations/add", methods=["POST"])
+def new_station():
     #verify the request body
     data = request.get_json()
     if not data or "name" not in data or "latitude" not in data or "longitude" not in data:
@@ -65,6 +77,24 @@ def add_gas_price():
         add_station(longitude, latitude, name)
         return jsonify({"message": "Station added successfully"}), 201
 
+@app.route("/api/stations/remove", methods=["POST"])
+def remove_station():
+    #verify the request body
+    data = request.get_json()
+    if not data or "id" not in data:
+        return jsonify({"error": "Invalid request"}), 400
+    else:
+        station_id = data["id"]
+        with sqlite3.connect(DATABASE) as conn:
+            cursor = conn.cursor()
+            # Delete the station from the stations table
+            cursor.execute('''
+                DELETE FROM stations WHERE id = ?
+            ''', (station_id,))
+            # Delete the prices associated with the station
+            cursor.execute('''
+                DELETE FROM prices WHERE id = ?
+            ''', (station_id,))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5003)

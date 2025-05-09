@@ -53,10 +53,87 @@ const getPeriodLabel = (period: string) => {
     }
 };
 
+
+
 export default function Home() {
 
     const [marker, setMarker] = useState<[number, number] | null>(null);
     const [period, setPeriod] = useState("7");
+    const [newStationName, setNewStationName] = useState("");
+    const [stations, setStations] = useState<any[]>([]);
+
+    function handleAddStation() {
+        if (marker && newStationName) {
+            console.log(`Adding station: ${newStationName} at ${marker[0]}, ${marker[1]}`);
+            const requestOptions = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: newStationName,
+                    latitude: marker[0],
+                    longitude: marker[1],
+                }),
+            };
+            fetch("http://192.168.0.102:5003/api/stations/add", requestOptions)
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error("Error adding station:", error));
+            // Reset marker and station name after adding
+            setNewStationName(" ");
+        }
+    }
+
+    function getStations() {
+        fetch("http://192.168.0.102:5003/api/stations")
+            .then(response => response.json())
+            .then(data => {
+                setStations(data);
+                console.log("Fetched stations:", data);
+            })
+            .catch(error => console.error("Error fetching stations:", error));
+        {stations.map((station) => (
+                <TableRow
+                    key={station.id}
+                    className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
+                    <TableCell className="bg-muted/50 py-2 font-medium w-1/2">
+                        {station.name}
+                    </TableCell>
+                    <TableCell className="py-2">
+                        {station.id}
+                    </TableCell>
+                    <TableCell className="py-2">
+                        <Button onClick={() => console.log(`Locate ${station.name}`)}>Locate</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                fetch("http://192.168.0.102:5003/api/stations/remove", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({id: station.id}),
+                                })
+                                    .then((response) => response.json())
+                                    .then(() => {
+                                        console.log(`Deleted station: ${station.name}`);
+                                        setStations((prev) =>
+                                            prev.filter((s) => s.id !== station.id)
+                                        );
+                                    })
+                                    .catch((error) =>
+                                        console.error("Error deleting station:", error)
+                                    );
+                            }}
+                        >Delete</Button>
+                    </TableCell>
+                </TableRow>
+        ))}
+
+
+
+    }
 
     function GeocoderControl() {
         const map = useMap();
@@ -180,13 +257,19 @@ export default function Home() {
                                                     </p>
                                                 </div>
                                             )}
-                                            <Label>Station Name <span className="text-destructive">*</span></Label>
+                                            <Label>Station Name<span className="text-destructive">*</span></Label>
                                             <div className="flex gap-2">
-                                                <Input className="flex-1" placeholder="Fuel Station" type="text"
-                                                       required/>
-                                                <Button variant="outline">Add</Button>
+                                                <Input className="flex-1" placeholder="Fuel Station" type="text" required value={newStationName} onChange={(e) => setNewStationName(e.target.value)}/>
+                                                <Button variant="outline" onClick={handleAddStation}>Add</Button>
                                             </div>
                                             {/*TODO: add list of stations*/}
+                                            <div className="bg-background overflow-hidden rounded-md border">
+                                                <Table className={"text-center"}>
+                                                    <TableBody>
+
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>

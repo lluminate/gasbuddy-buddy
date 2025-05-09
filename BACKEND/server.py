@@ -1,10 +1,12 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import sqlite3
+from gasbuddy import GasBuddy
+import asyncio
 
 from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
-DATABASE = './gas_station.db'  # Adjust the path if your database is in a different location
+DATABASE = "./gas_station.db"  # Adjust the path if your database is in a different location
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
@@ -15,7 +17,19 @@ def close_db(conn):
     if conn:
         conn.close()
 
-@app.route('/api/gas_prices')
+def add_station(longitude, latitude, name):
+    gasbuddy = GasBuddy()
+    response = asyncio.run(gasbuddy.price_lookup_service(lat=latitude, lon=longitude, limit=1))
+    id = response["results"][0]["station_id"]
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        # Insert the new station into the stations table
+        cursor.execute('''
+            INSERT INTO stations (id, longitude, latitude, name)
+            VALUES (?, ?, ?, ?)
+        ''', (id, longitude, latitude, name))
+
+@app.route("/api/gas_prices")
 def get_gas_prices():
     conn = get_db()
     cursor = conn.cursor()
@@ -37,5 +51,20 @@ def get_gas_prices():
     price_list = [dict(row) for row in prices]
     return jsonify(price_list)
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5003, debug=True)
+@app.route("/api/gas_prices", methods=["POST"])
+def add_gas_price():
+    #verify the request body
+    data = request.get_json()
+    if not data or "name" not in data or "latitude" not in data or "longitude" not in data:
+        return jsonify({"error": "Invalid request"}), 400
+    else:
+        name = data["name"]
+        latitude = data["latitude"]
+        longitude = data["longitude"]
+        # Add the station to the database
+        add_station(longitude, latitude, name)
+        return jsonify({"message": "Station added successfully"}), 201
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5003)

@@ -19,8 +19,12 @@ def close_db(conn):
 
 def add_station(longitude, latitude, name):
     gasbuddy = GasBuddy()
-    response = asyncio.run(gasbuddy.price_lookup_service(lat=latitude, lon=longitude, limit=1))
-    id = response["results"][0]["station_id"]
+    try:
+        response = asyncio.run(gasbuddy.price_lookup_service(lat=latitude, lon=longitude, limit=1))
+        id = response["results"][0]["station_id"]
+    except Exception as e:
+        print(f"Error in price_lookup_service: {e}")
+        raise
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
         # Insert the new station into the stations table
@@ -67,6 +71,7 @@ def get_stations():
 def new_station():
     #verify the request body
     data = request.get_json()
+    print(data)
     if not data or "name" not in data or "latitude" not in data or "longitude" not in data:
         return jsonify({"error": "Invalid request"}), 400
     else:

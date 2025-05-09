@@ -64,18 +64,18 @@ export default function Home() {
 
     function handleAddStation() {
         if (marker && newStationName) {
-            console.log(`Adding station: ${newStationName} at ${marker[0]}, ${marker[1]}`);
             const requestOptions = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    name: newStationName,
+                    name: newStationName.trim(),
                     latitude: marker[0],
                     longitude: marker[1],
                 }),
             };
+            console.log(requestOptions);
             fetch("http://192.168.0.102:5003/api/stations/add", requestOptions)
                 .then(response => response.json())
                 .then(data => console.log(data))

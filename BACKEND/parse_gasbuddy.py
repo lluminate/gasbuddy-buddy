@@ -1,33 +1,34 @@
-import sqlite3
-import requests
 import re
 from bs4 import BeautifulSoup
+import requests
 
-#database_path = "/home/victor/gasbuddy-buddy/BACKEND/gas_station.db"
-database_path = "gas_station.db"
+def get_info(station_id):
+    url = f"https://www.gasbuddy.com/station/{station_id}"
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, "lxml")
+        # Find the price element
+        price_element = soup.find(string=re.compile(r'"price":\s*([1-9][0-9]{2}\.[0-9])'))
+        time_element = soup.find(string=re.compile(r'"postedTime":\s*"(.*?)"'))
+        if price_element:
+            price_match = re.search(r'"price":\s*([1-9][0-9]{2}\.[0-9])', price_element)
+            if price_match:
+                price = price_match.group(1)
+                #print(f"Price: {price}")
+        else:
+            print("Price not found")
+        if time_element:
+            time_match = re.search(r'"postedTime":\s*"(.*?)"', time_element)
+            if time_match:
+                time = time_match.group(1)
+                #print(f"Time: {time}")
+        else:
+            print("Time not found")
 
-def initialize_database():
-    with sqlite3.connect(database_path) as conn:
-        cursor = conn.cursor()
-        # Create a table for the station if it doesn't exist
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS stations (
-                id INTEGER,
-                name TEXT,
-                latitude REAL,
-                longitude REAL
-            )
-        ''')
-
-        cursor.execute(f'''
-                            CREATE TABLE IF NOT EXISTS prices (
-                                id INTEGER,
-                                price REAL,
-                                last_updated DATETIME,
-                                FOREIGN KEY (id) REFERENCES stations (id),
-                                UNIQUE (last_updated, id)
-                            )
-                        ''')
+        return (price, time)
 
 def get_location(station_id):
     url = f"https://www.gasbuddy.com/station/{station_id}"
@@ -73,24 +74,9 @@ def get_station_name(station_id):
     else:
         print("Title not found")
 
-def add_station(station_id):
-    with sqlite3.connect(database_path) as conn:
-        cursor = conn.cursor()
-        # Insert the new station into the stations table
-        cursor.execute('''
-            INSERT INTO stations (id, latitude, longitude, name)
-            VALUES (?, ?, ?, ?)
-        ''', (station_id, get_location(station_id)[0], get_location(station_id)[1], get_station_name(station_id)))
+if __name__ == "__main__":
+    data = {"name": get_station_name(65469), "latitude": get_location(65469)[0], "longitude": get_location(65469)[1]}
+    last_update = {"last_updated": get_info(65469)[1], "price": get_info(65469)[0]}
 
-if __name__ == '__main__':
-    initialize_database()
-    print("Database initialized.")
-    cont = input("Press y to add a station or any other key to exit: ")
-    # Loop to add stations
-    while cont.lower() == "y":
-        station_id = input("Enter the id of the station: ")
-        add_station(station_id)
-        print("Station added.")
-        cont = input("Press y to add another station or any other key to exit: ")
-
-    print("Exiting.")
+    print(data)
+    print(last_update)

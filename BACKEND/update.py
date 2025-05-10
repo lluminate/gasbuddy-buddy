@@ -1,17 +1,42 @@
-import asyncio
-from gasbuddy import GasBuddy
+
 import sqlite3
 from datetime import datetime
+import requests
+import re
+from bs4 import BeautifulSoup
 
 #database_path = "/home/victor/gasbuddy-buddy/BACKEND/gas_station.db"
 database_path = "gas_station.db"
 
-async def fetch_price(location):
-    gasbuddy = GasBuddy()
-    response = await gasbuddy.price_lookup_service(lat=location["latitude"], lon=location["longitude"], limit=1)
-    return response["results"][0]["station_id"], response["results"][0]["regular_gas"]["price"], response["results"][0]["regular_gas"]["last_updated"]
+def fetch_price(station_id):
+    url = f"https://www.gasbuddy.com/station/{station_id}"
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, "lxml")
+        # Find the price element
+        price_element = soup.find(string=re.compile(r'"price":\s*([1-9][0-9]{2}\.[0-9])'))
+        time_element = soup.find(string=re.compile(r'"postedTime":\s*"(.*?)"'))
+        if price_element:
+            price_match = re.search(r'"price":\s*([1-9][0-9]{2}\.[0-9])', price_element)
+            if price_match:
+                price = price_match.group(1)
+                #print(f"Price: {price}")
+        else:
+            print("Price not found")
+        if time_element:
+            time_match = re.search(r'"postedTime":\s*"(.*?)"', time_element)
+            if time_match:
+                time = time_match.group(1)
+                #print(f"Time: {time}")
+        else:
+            print("Time not found")
 
-def update_db(id, price, last_updated):
+        return price, time
+
+def update_db(station_id, price, last_updated):
     with sqlite3.connect(database_path) as conn:
         cursor = conn.cursor()
 
@@ -19,11 +44,11 @@ def update_db(id, price, last_updated):
             cursor.execute(f'''
                         INSERT INTO prices (id, price, last_updated)
                         VALUES (?, ?, ?)
-                    ''', (id, price, last_updated)
+                    ''', (station_id, price, last_updated)
                            )
-            print(f"{datetime.now().replace(microsecond=0)}:  Price for {get_name(id)} {get_location(id)} updated to {price} at {datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)}")
+            print(f"{datetime.now().replace(microsecond=0)}:  Price for {get_name(station_id)} {get_location(station_id)} updated to {price} at {datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)}")
         except sqlite3.IntegrityError:
-            print(f"{datetime.now().replace(microsecond=0)}:  Price for {get_name(id)} {get_location(id)} has not changed since {datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)}, not updating the database.")
+            print(f"{datetime.now().replace(microsecond=0)}:  Price for {get_name(station_id)} {get_location(station_id)} has not changed since {datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)}, not updating the database.")
         except sqlite3.OperationalError:
             print("Database does not exist, please run init_db.py first.")
 
@@ -60,20 +85,13 @@ if __name__ == "__main__":
         cursor = conn.cursor()
         # get the longitude and latitude of each station
         cursor.execute('''
-                    SELECT id, longitude, latitude FROM stations
+                    SELECT id FROM stations
                 ''')
         rows = cursor.fetchall()
-        location = []
-        for row in rows:
-            location.append({
-                "latitude": row[2],
-                "longitude": row[1]
-            })
 
-        #print(location)
-
-    # Fetch the price for each location
-    for loc in location:
-        id, price, last_updated = asyncio.run(fetch_price(loc))
-        update_db(id, price, last_updated)
-        #print(f"Station: {get_name(id)} {get_location(id)}, Price: {price}, Last Updated: {last_updated}")
+    for station_id in rows:
+        price, last_updated = fetch_price(station_id[0])
+        if station_id and price and last_updated:  # Ensure all values are valid before updating
+            update_db(station_id[0], price, last_updated)
+        else:
+            print(f"Failed to fetch or update data for station ID: {station_id}")

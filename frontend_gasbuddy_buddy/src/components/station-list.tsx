@@ -19,7 +19,6 @@ export default function StationList({setMarker}: {setMarker: (value:[number,numb
     const [stations, setStations] = useState<any[]>([]);
     const [stationTableKey, setStationTableKey] = useState(0);
 
-
     function handleDelete(stationId: number) {
         const requestOptions = {
             method: "POST",
@@ -36,11 +35,7 @@ export default function StationList({setMarker}: {setMarker: (value:[number,numb
                 console.log(data);
             })
             .catch((error) => console.error("Error deleting station:", error));
-        if (stationTableKey === 0) {
-            setStationTableKey(1);
-        } else {
-            setStationTableKey(0);
-        }
+        setStations(stations.filter(station => station.id !== stationId));
     }
 
     function handleLocate(latitude: number, longitude: number) {

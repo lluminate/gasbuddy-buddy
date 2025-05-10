@@ -31,15 +31,6 @@ const emojiIcon = new L.DivIcon({
     iconAnchor: [12, 24], // center the icon
 });
 
-function ClickToAddMarker({setMarker}: GeocoderControlProps) {
-    useMapEvents({
-        click(e) {
-            setMarker([e.latlng.lat, e.latlng.lng]);
-        },
-    });
-    return null;
-}
-
 // Helper function to map period to label
 const getPeriodLabel = (period: string) => {
     switch (period) {
@@ -78,11 +69,7 @@ export default function Home() {
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    if (stationTableKey === 0) {
-                        setStationTableKey(1);
-                    } else {
-                        setStationTableKey(0);
-                    }
+                    setStationTableKey(stationTableKey + 1); // Refresh the station list
                 })
                 .catch(error => console.error("Error adding station:", error));
             // Reset marker and station name after adding
@@ -103,7 +90,6 @@ export default function Home() {
                 .on("markgeocode", function (e) {
                     const {center} = e.geocode;
                     setMarker([center.lat, center.lng]);
-                    map.setView(center, 15);
                 })
                 .addTo(map);
 
@@ -114,6 +100,20 @@ export default function Home() {
 
         return null;
     }
+
+    // @ts-ignore
+    function MarkerAutoCenter({marker}) {
+        const map = useMap();
+
+        useEffect(() => {
+            if (map && marker) {
+                map.setView(marker, map.getZoom());
+            }
+        }, [marker, map]);
+
+        return null;
+    }
+
 
     return (
         <div className="px-6 py-20 min-h-svh flex flex-col justify-center bg-zinc-100 dark:bg-zinc-950">
@@ -150,17 +150,17 @@ export default function Home() {
                                         {/*TODO: implement period changing*/}
                                     </div>
                                 </div>
-                                <Gas_chart/>
+                                <Gas_chart key={stationTableKey}/>
                             </CardContent>
                         </Card>
                     </div>
                     {/* Add Station Area */}
                     <div className={"flex-1 @container"}>
                         <div className={"flex flex-row gap-6"}>
-                            <Card className="shadow-2xl rounded-3xl p-0 w-2/3">
+                            <Card className="shadow-2xl rounded-3xl p-0 w-1/2">
                                 <CardContent className={"p-0 z-5"}>
                                     <MapContainer
-                                        center={[49.281922853936955, -123.12045878399663]}
+                                        center={marker || [49.281922853936955, -123.12045878399663]}
                                         zoom={10}
                                         style={{height: "600px", width: "100%"}}
                                         className={"rounded-3xl border-transparent dark:border-border/64"}
@@ -170,17 +170,28 @@ export default function Home() {
                                             url={'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
                                             className={"map-tiles"}
                                         />
-                                        <ClickToAddMarker setMarker={setMarker}/>
                                         <GeocoderControl/>
-                                        {marker && <Marker position={marker} icon={emojiIcon}/>}
+                                        {marker && <div>
+                                            <Marker position={marker} icon={emojiIcon}/>
+                                            <MarkerAutoCenter marker={marker} />
+                                            </div>
+                                        }
                                     </MapContainer>
                                 </CardContent>
                             </Card>
-                            <Card className="shadow-2xl rounded-3xl w-1/3 border-transparent dark:border-border/64">
+                            <Card className="shadow-2xl rounded-3xl w-1/2 border-transparent dark:border-border/64">
                                 <CardContent>
                                     <div>
                                         <div className="*:not-first:mt-2">
                                             <h1 className="text-xl font-semibold">Add a New Station</h1>
+                                            <Label>Station ID<span className="text-destructive">*</span></Label>
+                                            <div className="flex gap-2">
+                                                <Input className="flex-1" placeholder="12345" type="text" required value={newStationID} onChange={(e) => setNewStationID(e.target.value)}/>
+                                                <Button variant="outline" onClick={handleAddStation}>Add</Button>
+                                            </div>
+                                            <div className={"z-1000"}>
+                                                <StationList setMarker={setMarker} key={stationTableKey}/>
+                                            </div>
                                             {marker ? (
                                                 <div className="bg-background overflow-hidden rounded-md border">
                                                     <Table className={"text-center"}>
@@ -209,18 +220,10 @@ export default function Home() {
                                             ) : (
                                                 <div className="bg-muted/50 rounded-md p-2 text-center border">
                                                     <p className="text-sm text-muted-foreground">
-                                                        Click on the map to add a marker
+                                                        Click on a station see its location.
                                                     </p>
                                                 </div>
                                             )}
-                                            <Label>Station ID<span className="text-destructive">*</span></Label>
-                                            <div className="flex gap-2">
-                                                <Input className="flex-1" placeholder="12345" type="text" required value={newStationID} onChange={(e) => setNewStationID(e.target.value)}/>
-                                                <Button variant="outline" onClick={handleAddStation}>Add</Button>
-                                            </div>
-                                            <div className={"z-1000"}>
-                                                <StationList setMarker={setMarker} key={stationTableKey}/>
-                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>

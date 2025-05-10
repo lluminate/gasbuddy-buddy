@@ -119,7 +119,7 @@ export default function Gas_chart() {
                         domain={["auto", "auto"]}
                         tickFormatter={(val) => `${val}¢`}
                     />
-                    <Legend/>
+                    <Legend layout={"vertical"}/>
                     {Object.entries(groupedData).map(([station, data], index) => (
                         <Line
                             key={station}

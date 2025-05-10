@@ -57,31 +57,37 @@ const getPeriodLabel = (period: string) => {
 
 
 export default function Home() {
-
     const [marker, setMarker] = useState<[number, number] | null>(null);
     const [period, setPeriod] = useState("7");
-    const [newStationName, setNewStationName] = useState("");
+    const [newStationID, setNewStationID] = useState("");
+    const [stationTableKey, setStationTableKey] = useState(0);
 
     function handleAddStation() {
-        if (marker && newStationName) {
+        if (newStationID) {
             const requestOptions = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    name: newStationName.trim(),
-                    latitude: marker[0],
-                    longitude: marker[1],
+                    id: newStationID.trim()
                 }),
             };
             console.log(requestOptions);
             fetch("http://192.168.0.102:5003/api/stations/add", requestOptions)
                 .then(response => response.json())
-                .then(data => console.log(data))
+                .then(data => {
+                    console.log(data);
+                    if (stationTableKey === 0) {
+                        setStationTableKey(1);
+                    } else {
+                        setStationTableKey(0);
+                    }
+                })
                 .catch(error => console.error("Error adding station:", error));
             // Reset marker and station name after adding
-            setNewStationName(" ");
+            setNewStationID("");
+            setMarker(null);
         }
     }
 
@@ -207,13 +213,13 @@ export default function Home() {
                                                     </p>
                                                 </div>
                                             )}
-                                            <Label>Station Name<span className="text-destructive">*</span></Label>
+                                            <Label>Station ID<span className="text-destructive">*</span></Label>
                                             <div className="flex gap-2">
-                                                <Input className="flex-1" placeholder="Fuel Station" type="text" required value={newStationName} onChange={(e) => setNewStationName(e.target.value)}/>
+                                                <Input className="flex-1" placeholder="12345" type="text" required value={newStationID} onChange={(e) => setNewStationID(e.target.value)}/>
                                                 <Button variant="outline" onClick={handleAddStation}>Add</Button>
                                             </div>
                                             <div className={"z-1000"}>
-                                                <StationList setMarker={setMarker}/>
+                                                <StationList setMarker={setMarker} key={stationTableKey}/>
                                             </div>
                                         </div>
                                     </div>

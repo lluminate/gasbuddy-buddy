@@ -17,21 +17,30 @@ import {
 
 export default function StationList({setMarker}: {setMarker: (value:[number,number]) => void}) {
     const [stations, setStations] = useState<any[]>([]);
+    const [stationTableKey, setStationTableKey] = useState(0);
 
 
     function handleDelete(stationId: number) {
-        fetch("http://192.168.0.102:5003/api/stations/remove", {
+        const requestOptions = {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({id: stationId}),
-        })
+            body: JSON.stringify({
+                id: stationId
+            }),
+        };
+        fetch("http://192.168.0.102:5003/api/stations/remove", requestOptions)
             .then((response) => response.json())
-            .then(data => console.log(data))
-            .catch((error) =>
-                console.error("Error deleting station:", error)
-            );
+            .then(data => {
+                console.log(data);
+            })
+            .catch((error) => console.error("Error deleting station:", error));
+        if (stationTableKey === 0) {
+            setStationTableKey(1);
+        } else {
+            setStationTableKey(0);
+        }
     }
 
     function handleLocate(latitude: number, longitude: number) {
@@ -50,14 +59,16 @@ export default function StationList({setMarker}: {setMarker: (value:[number,numb
 
     return (
         <div className="bg-background overflow-hidden rounded-md border">
-            <Table>
+            <Table key={stationTableKey}>
                 <TableBody>
                     {stations.map((station) => (
                         <TableRow
                             key={station.id}
                             className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
                             <TableCell className="bg-muted/50 py-2 font-medium">
-                                {station.name}
+                                <Button onClick={() => handleLocate(station.latitude, station.longitude)} variant={"ghost"}>
+                                    {station.name}
+                                </Button>
                             </TableCell>
                             <TableCell className="py-2 flex gap-2 items-center justify-end">
                                 <div className={"flex w-full justify-center"}>
@@ -65,9 +76,7 @@ export default function StationList({setMarker}: {setMarker: (value:[number,numb
                                         <Button variant={"link"}>{station.id}</Button>
                                     </a>
                                 </div>
-                                <Button onClick={() => handleLocate(station.latitude, station.longitude)} variant={"outline"}>
-                                    <MapPin size={16}/>
-                                </Button>
+
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="destructive">
@@ -98,8 +107,6 @@ export default function StationList({setMarker}: {setMarker: (value:[number,numb
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-
-
                             </TableCell>
                         </TableRow>
                     ))}

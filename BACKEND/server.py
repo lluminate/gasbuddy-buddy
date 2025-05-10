@@ -3,6 +3,7 @@ import sqlite3
 import requests
 import re
 from bs4 import BeautifulSoup
+import update
 
 from flask_cors import CORS
 app = Flask(__name__)
@@ -107,7 +108,7 @@ def get_stations():
     return jsonify(station_list)
 
 @app.route("/api/stations/add", methods=["POST"])
-async def new_station():
+def new_station():
     #verify the request body
     data = request.get_json()
     print(data)
@@ -117,6 +118,7 @@ async def new_station():
         station_id = data["id"]
         # Add the station to the database
         add_station(station_id)
+        update.main()
         return jsonify({"message": "Station added successfully"}), 201
 
 @app.route("/api/stations/remove", methods=["POST"])
@@ -137,7 +139,6 @@ def remove_station():
             cursor.execute('''
                 DELETE FROM prices WHERE id = ?
             ''', (station_id,))
-
         return jsonify({"message": "Station removed successfully"}), 200
 
 if __name__ == "__main__":

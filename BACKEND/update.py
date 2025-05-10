@@ -80,7 +80,7 @@ def get_location(id):
             print(f"No station found with id {id}")
             return None
 
-if __name__ == "__main__":
+def main():
     with sqlite3.connect(database_path) as conn:
         cursor = conn.cursor()
         # get the longitude and latitude of each station
@@ -95,3 +95,6 @@ if __name__ == "__main__":
             update_db(station_id[0], price, last_updated)
         else:
             print(f"Failed to fetch or update data for station ID: {station_id}")
+
+if __name__ == "__main__":
+    main()

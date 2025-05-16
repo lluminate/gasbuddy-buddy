@@ -1,23 +1,23 @@
 import sqlite3
-import requests
-import re
-from bs4 import BeautifulSoup
+from parse_gasbuddy import get_station_name, get_location
 
-#database_path = "/home/victor/gasbuddy-buddy/BACKEND/gas_station.db"
+# database_path = "/home/victor/gasbuddy-buddy/BACKEND/gas_station.db"
 database_path = "gas_station.db"
+
 
 def initialize_database():
     with sqlite3.connect(database_path) as conn:
         cursor = conn.cursor()
         # Create a table for the station if it doesn't exist
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS stations (
-                id INTEGER,
-                name TEXT,
-                latitude REAL,
-                longitude REAL
-            )
-        ''')
+                       CREATE TABLE IF NOT EXISTS stations
+                       (
+                           id        INTEGER,
+                           name      TEXT,
+                           latitude  REAL,
+                           longitude REAL
+                       )
+                       ''')
 
         cursor.execute(f'''
                             CREATE TABLE IF NOT EXISTS prices (
@@ -29,58 +29,6 @@ def initialize_database():
                             )
                         ''')
 
-def get_location(station_id):
-    url = f"https://www.gasbuddy.com/station/{station_id}"
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "lxml")
-        # Find the latitude and longitude elements
-        latitude_element = soup.find(string=re.compile(r'"latitude":\s*([0-9.-]+)'))
-        longitude_element = soup.find(string=re.compile(r'"longitude":\s*([0-9.-]+)'))
-        if latitude_element and longitude_element:
-            latitude_match = re.search(r'"latitude":\s*([0-9.-]+)', latitude_element)
-            longitude_match = re.search(r'"longitude":\s*([0-9.-]+)', longitude_element)
-            if latitude_match and longitude_match:
-                latitude = latitude_match.group(1)
-                longitude = longitude_match.group(1)
-                #print(f"Latitude: {latitude}")
-                #print(f"Longitude: {longitude}")
-                return (latitude, longitude)
-        else:
-            print("Location not found")
-
-def get_station_name(station_id):
-    url = f"https://www.gasbuddy.com/station/{station_id}"
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.content, "lxml")
-    # Find the title
-    title_element = soup.find("title")
-    if title_element:
-        title = title_element.get_text()
-        # Extract the station name from the title
-        station_name = re.search(r'^(.*?)\s+-\s*GasBuddy', title)
-        if station_name:
-            #print(f"Station Name: {station_name.group(1)}")
-            return station_name.group(1)
-        else:
-            print("Station name not found")
-    else:
-        print("Title not found")
-
-def add_station(station_id):
-    with sqlite3.connect(database_path) as conn:
-        cursor = conn.cursor()
-        # Insert the new station into the stations table
-        cursor.execute('''
-            INSERT INTO stations (id, latitude, longitude, name)
-            VALUES (?, ?, ?, ?)
-        ''', (station_id, get_location(station_id)[0], get_location(station_id)[1], get_station_name(station_id)))
 
 if __name__ == '__main__':
     initialize_database()
@@ -89,7 +37,14 @@ if __name__ == '__main__':
     # Loop to add stations
     while cont.lower() == "y":
         station_id = input("Enter the id of the station: ")
-        add_station(station_id)
+        with sqlite3.connect(database_path) as conn:
+            cursor = conn.cursor()
+            # Insert the new station into the station table
+            cursor.execute('''
+                           INSERT INTO stations (id, latitude, longitude, name)
+                           VALUES (?, ?, ?, ?)
+                           ''', (station_id, get_location(station_id)[0], get_location(station_id)[1],
+                                 get_station_name(station_id)))
         print("Station added.")
         cont = input("Press y to add another station or any other key to exit: ")
 
